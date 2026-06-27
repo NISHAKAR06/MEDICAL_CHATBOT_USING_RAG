@@ -8,6 +8,9 @@ import chromadb
 
 load_dotenv()
 
+# Vercel Serverless Fix: Force FastEmbed to cache models in the writable /tmp directory
+os.environ["FASTEMBED_CACHE_PATH"] = "/tmp/fastembed_cache"
+
 
 # ── Document Loading ─────────────────────────────────────────
 def load_pdf_files(data_path: str):
