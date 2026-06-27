@@ -1,9 +1,8 @@
-langchain==0.3.26
-flask==3.1.1
-sentence-transformers==4.1.0
-pypdf==5.6.1
-python-dotenv==1.1.0
-langchain-ollama==0.3.10
-langchain-community==0.3.26
+langchain
+langchain-community
+langchain-chroma
+langchain-ollama
+flask
 chromadb
-langchain-chroma==1.1.0
+pypdf
+python-dotenv
