@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Medical AI Assistant</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-glow: rgba(99, 102, 241, 0.4);
+            --secondary: #ec4899;
+            --bg-dark: #09090b;
+            --glass-bg: rgba(255, 255, 255, 0.03);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        /* Animated Background Orbs */
+        .bg-orb {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(80px);
+            opacity: 0.5;
+            z-index: -1;
+            animation: float 20s infinite ease-in-out alternate;
+        }
+        .orb-1 {
+            width: 400px; height: 400px;
+            background: rgba(99, 102, 241, 0.3);
+            top: -100px; left: -100px;
+        }
+        .orb-2 {
+            width: 500px; height: 500px;
+            background: rgba(236, 72, 153, 0.2);
+            bottom: -200px; right: -100px;
+            animation-delay: -5s;
+        }
+        .orb-3 {
+            width: 300px; height: 300px;
+            background: rgba(45, 212, 191, 0.2);
+            bottom: 20%; left: 20%;
+            animation-delay: -10s;
+        }
+
+        @keyframes float {
+            0% { transform: translate(0, 0) scale(1); }
+            50% { transform: translate(50px, 50px) scale(1.1); }
+            100% { transform: translate(-30px, 80px) scale(0.9); }
+        }
+
+        /* Header */
+        header {
+            padding: 20px 40px;
+            background: rgba(9, 9, 11, 0.7);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--glass-border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            z-index: 10;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 1.5rem;
+            font-weight: 600;
+            background: linear-gradient(135deg, #fff, #a5b4fc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .logo-icon {
+            width: 36px; height: 36px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            color: white; font-size: 1.2rem;
+            box-shadow: 0 0 20px var(--primary-glow);
+        }
+
+        /* Chat Container */
+        .chat-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 40px 20px 140px;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+            scroll-behavior: smooth;
+        }
+
+        .chat-container::-webkit-scrollbar { width: 6px; }
+        .chat-container::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
+
+        /* Welcome Section */
+        .welcome-box {
+            margin: auto;
+            text-align: center;
+            max-width: 600px;
+            animation: fadeIn 1s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .welcome-box h1 {
+            font-size: 3rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            background: linear-gradient(135deg, #fff, #cbd5e1);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .welcome-box p {
+            color: var(--text-muted);
+            font-size: 1.1rem;
+            margin-bottom: 2rem;
+            line-height: 1.6;
+        }
+
+        .suggestions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            justify-content: center;
+        }
+        .suggestion-chip {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            padding: 12px 20px;
+            border-radius: 100px;
+            color: var(--text-main);
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+        .suggestion-chip:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255,255,255,0.3);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        /* Messages */
+        .message {
+            display: flex;
+            gap: 16px;
+            max-width: 800px;
+            margin: 0 auto;
+            width: 100%;
+            animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+            opacity: 0;
+            transform: translateY(20px);
+        }
+
+        @keyframes slideUp {
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .message.user { flex-direction: row-reverse; }
+
+        .avatar {
+            width: 40px; height: 40px;
+            border-radius: 12px;
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0; font-size: 1.2rem;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+        .message.bot .avatar {
+            background: linear-gradient(135deg, var(--primary), #818cf8);
+            color: white;
+        }
+        .message.user .avatar {
+            background: linear-gradient(135deg, var(--secondary), #f472b6);
+            color: white;
+        }
+
+        .message-bubble {
+            padding: 16px 24px;
+            border-radius: 20px;
+            font-size: 1.05rem;
+            line-height: 1.6;
+            position: relative;
+        }
+
+        .message.bot .message-bubble {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            backdrop-filter: blur(10px);
+            border-top-left-radius: 4px;
+            color: #f1f5f9;
+        }
+
+        .message.user .message-bubble {
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(236, 72, 153, 0.15));
+            border: 1px solid rgba(236, 72, 153, 0.3);
+            border-top-right-radius: 4px;
+        }
+
+        /* Markdown elements formatting */
+        .message-bubble p { margin-bottom: 12px; }
+        .message-bubble p:last-child { margin-bottom: 0; }
+        .message-bubble ul, .message-bubble ol { margin-left: 20px; margin-bottom: 12px; }
+        .message-bubble li { margin-bottom: 4px; }
+        
+        .sources {
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid rgba(255,255,255,0.05);
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            display: flex; gap: 8px; align-items: center;
+        }
+
+        /* Input Area */
+        .input-wrapper {
+            position: absolute;
+            bottom: 0; left: 0; right: 0;
+            padding: 30px 20px;
+            background: linear-gradient(to top, rgba(9,9,11,1) 40%, rgba(9,9,11,0));
+            display: flex;
+            justify-content: center;
+            z-index: 10;
+        }
+
+        .input-box {
+            width: 100%;
+            max-width: 800px;
+            background: rgba(30, 41, 59, 0.6);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            padding: 8px 8px 8px 24px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            transition: all 0.3s ease;
+        }
+        .input-box:focus-within {
+            border-color: rgba(99, 102, 241, 0.5);
+            box-shadow: 0 10px 40px rgba(99, 102, 241, 0.2);
+            background: rgba(30, 41, 59, 0.8);
+        }
+
+        .input-box textarea {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: var(--text-main);
+            font-family: inherit;
+            font-size: 1.05rem;
+            resize: none;
+            outline: none;
+            max-height: 150px;
+            height: 28px;
+            padding: 4px 0;
+        }
+        .input-box textarea::placeholder { color: var(--text-muted); }
+
+        .send-btn {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            border: none;
+            width: 44px; height: 44px;
+            border-radius: 18px;
+            display: flex; align-items: center; justify-content: center;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            flex-shrink: 0;
+        }
+        .send-btn:hover:not(:disabled) {
+            transform: scale(1.05);
+            box-shadow: 0 0 20px rgba(236, 72, 153, 0.4);
+        }
+        .send-btn:disabled {
+            background: var(--glass-bg);
+            color: var(--text-muted);
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+
+        /* Typing Animation */
+        .typing-dots {
+            display: flex;
+            gap: 4px;
+            padding: 8px 4px;
+        }
+        .typing-dots span {
+            width: 6px; height: 6px;
+            background: var(--text-main);
+            border-radius: 50%;
+            animation: typing 1.4s infinite;
+            opacity: 0.4;
+        }
+        .typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+        .typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+        @keyframes typing {
+            0%, 100% { transform: translateY(0); opacity: 0.4; }
+            50% { transform: translateY(-4px); opacity: 1; }
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="bg-orb orb-1"></div>
+    <div class="bg-orb orb-2"></div>
+    <div class="bg-orb orb-3"></div>
+
+    <header>
+        <div class="logo">
+            <div class="logo-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+            </div>
+            Medical AI Assistant
+        </div>
+        <div style="display:flex; align-items:center; gap:8px; background:var(--glass-bg); padding:6px 14px; border-radius:20px; border:1px solid var(--glass-border); backdrop-filter:blur(10px); box-shadow:0 4px 15px rgba(0,0,0,0.1);">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+            <span style="font-size:0.75rem; font-weight:600; color:var(--text-main); letter-spacing:0.5px; text-transform:uppercase;">Powered by RAG</span>
+        </div>
+    </header>
+
+    <div class="chat-container" id="chat-container">
+        <div class="welcome-box" id="welcome-box">
+            <h1>How can I help you today?</h1>
+            <p>I am your advanced medical AI, drawing knowledge from the Gale Encyclopedia of Medicine. Ask me about conditions, symptoms, or treatments.</p>
+            <div class="suggestions">
+                <div class="suggestion-chip" onclick="askQuestion('What are the early signs of diabetes?')">Early signs of diabetes</div>
+                <div class="suggestion-chip" onclick="askQuestion('How to treat a severe migraine?')">Treating severe migraines</div>
+                <div class="suggestion-chip" onclick="askQuestion('Explain the causes of hypertension')">Causes of hypertension</div>
+            </div>
+        </div>
+        <div id="messages"></div>
+    </div>
+
+    <div class="input-wrapper">
+        <div class="input-box">
+            <textarea id="user-input" placeholder="Type your medical query here..."></textarea>
+            <button class="send-btn" id="send-btn" disabled>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const input = document.getElementById('user-input');
+        const sendBtn = document.getElementById('send-btn');
+        const chatContainer = document.getElementById('chat-container');
+        const messages = document.getElementById('messages');
+        const welcomeBox = document.getElementById('welcome-box');
+
+        input.addEventListener('input', () => {
+            input.style.height = '28px';
+            input.style.height = Math.min(input.scrollHeight, 150) + 'px';
+            sendBtn.disabled = !input.value.trim();
+        });
+
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                if (!sendBtn.disabled) sendMessage();
+            }
+        });
+
+        sendBtn.addEventListener('click', sendMessage);
+
+        function askQuestion(text) {
+            input.value = text;
+            sendBtn.disabled = false;
+            sendMessage();
+        }
+
+        function createMessage(text, isUser, sources = []) {
+            const div = document.createElement('div');
+            div.className = `message ${isUser ? 'user' : 'bot'}`;
+            
+            const icon = isUser 
+                ? '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>'
+                : '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>';
+
+            let html = `
+                <div class="avatar">${icon}</div>
+                <div class="message-bubble">
+                    ${text}
+            `;
+
+            if (sources.length > 0) {
+                html += `<div class="sources">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
+                    Sources: ${sources.join(', ')}
+                </div>`;
+            }
+
+            html += `</div>`;
+            div.innerHTML = html;
+            return div;
+        }
+
+        function showTyping() {
+            const div = document.createElement('div');
+            div.className = 'message bot typing-indicator';
+            div.id = 'typing';
+            div.innerHTML = `
+                <div class="avatar"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></div>
+                <div class="message-bubble">
+                    <div class="typing-dots"><span></span><span></span><span></span></div>
+                </div>
+            `;
+            messages.appendChild(div);
+            scrollToBottom();
+        }
+
+        function hideTyping() {
+            const el = document.getElementById('typing');
+            if (el) el.remove();
+        }
+
+        function scrollToBottom() {
+            chatContainer.scrollTo({ top: chatContainer.scrollHeight, behavior: 'smooth' });
+        }
+
+        async function sendMessage() {
+            const text = input.value.trim();
+            if (!text) return;
+
+            if (welcomeBox) welcomeBox.style.display = 'none';
+
+            messages.appendChild(createMessage(text.replace(/\\n/g, '<br>'), true));
+            input.value = '';
+            input.style.height = '28px';
+            sendBtn.disabled = true;
+            scrollToBottom();
+
+            showTyping();
+
+            try {
+                const res = await fetch('http://127.0.0.1:5000/ask', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ question: text }),
+                });
+                const data = await res.json();
+                hideTyping();
+
+                // Format the answer with marked.js
+                let formattedAnswer = marked.parse(data.answer);
+                messages.appendChild(createMessage(formattedAnswer, false, data.sources || []));
+                scrollToBottom();
+            } catch (err) {
+                hideTyping();
+                messages.appendChild(createMessage('Unable to connect. Please ensure the server is running.', false));
+                scrollToBottom();
+            }
+        }
+    </script>
+</body>
+</html>
