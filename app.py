@@ -16,42 +16,49 @@ app = Flask(__name__)
 CORS(app, resources={r"/ask": {"origins": "*"}})
 
 # ── Initialize RAG components once at startup ────────────────
-print("Loading embedding model ...")
-embedding = get_embeddings()
+qa_chain = None
+init_error = None
 
-print("Connecting to ChromaDB Cloud ...")
-vector_store = get_vector_store(embedding)
+try:
+    print("Loading embedding model ...")
+    embedding = get_embeddings()
 
-print("Setting up Groq LLM ...")
-llm = ChatGroq(
-    model=os.environ.get("GROQ_MODEL", "llama-3.1-8b-instant"),
-    temperature=0.4,
-    groq_api_key=os.environ.get("GROQ_API_KEY"),
-)
+    print("Connecting to ChromaDB Cloud ...")
+    vector_store = get_vector_store(embedding)
 
-PROMPT = PromptTemplate(
-    template=SYSTEM_PROMPT,
-    input_variables=["context", "question"],
-)
+    print("Setting up Groq LLM ...")
+    llm = ChatGroq(
+        model=os.environ.get("GROQ_MODEL", "llama-3.1-8b-instant"),
+        temperature=0.4,
+        groq_api_key=os.environ.get("GROQ_API_KEY", "missing_key"),
+    )
 
-retriever = vector_store.as_retriever(search_kwargs={"k": 4})
+    PROMPT = PromptTemplate(
+        template=SYSTEM_PROMPT,
+        input_variables=["context", "question"],
+    )
 
-def format_docs(docs):
-    return "\n\n".join(doc.page_content for doc in docs)
+    retriever = vector_store.as_retriever(search_kwargs={"k": 4})
 
-# Modern LCEL approach to RAG (bypasses deprecated langchain.chains entirely)
-rag_chain_from_docs = (
-    RunnablePassthrough.assign(context=(lambda x: format_docs(x["context"])))
-    | PROMPT
-    | llm
-    | StrOutputParser()
-)
+    def format_docs(docs):
+        return "\n\n".join(doc.page_content for doc in docs)
 
-qa_chain = RunnableParallel(
-    {"context": retriever, "question": RunnablePassthrough()}
-).assign(answer=rag_chain_from_docs)
+    # Modern LCEL approach to RAG (bypasses deprecated langchain.chains entirely)
+    rag_chain_from_docs = (
+        RunnablePassthrough.assign(context=(lambda x: format_docs(x["context"])))
+        | PROMPT
+        | llm
+        | StrOutputParser()
+    )
 
-print("[OK] Medical Chatbot ready!")
+    qa_chain = RunnableParallel(
+        {"context": retriever, "question": RunnablePassthrough()}
+    ).assign(answer=rag_chain_from_docs)
+
+    print("[OK] Medical Chatbot ready!")
+except Exception as e:
+    print(f"[ERROR] Initialization failed: {e}")
+    init_error = str(e)
 
 
 # ── Routes ───────────────────────────────────────────────────
@@ -64,6 +71,12 @@ def index():
 def ask():
     data = request.get_json()
     question = data.get("question", "").strip()
+
+    if init_error:
+        return jsonify({
+            "answer": f"⚠️ **Server Configuration Error**: The server failed to initialize properly. \n\n**Error Details:** `{init_error}` \n\nIf you are on Vercel, this usually means you forgot to add your Environment Variables (like `CHROMA_API_KEY` or `GROQ_API_KEY`) to the Vercel Dashboard.", 
+            "sources": []
+        })
 
     if not question:
         return jsonify({"answer": "Please enter a question.", "sources": []})
